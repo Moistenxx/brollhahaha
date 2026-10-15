@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920,height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      :root { --paper:#f4f0e6; --paper2:#fffdf7; --ink:#171716; --muted:#6c6a61; --lime:#c8ff1a; --yellow:#f4d34d; --red:#f15b54; --cyan:#77cbd1; --blue:#92b7f0; --shadow:rgba(23,23,22,.18); }
+      * { box-sizing:border-box; }
+      html,body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--paper); color:var(--ink); font-family:Arial,sans-serif; }
+      #root { position:relative; width:100%; height:100%; overflow:hidden; background:var(--paper); }
+      #root::before { content:""; position:absolute; inset:0; opacity:.22; background-image:radial-gradient(#98978d 1px,transparent 1px); background-size:22px 22px; pointer-events:none; }
+      .grain { position:absolute; inset:0; opacity:.14; border:12px solid transparent; background-image:linear-gradient(transparent,transparent),repeating-linear-gradient(0deg,transparent 0 7px,#17171608 8px 9px); pointer-events:none; }
+      .record { position:absolute; right:58px; top:32px; font:700 16px/1 monospace; letter-spacing:2px; z-index:40; }
+      .record::before { content:""; display:inline-block; width:10px; height:10px; margin-right:8px; border-radius:50%; background:var(--red); }
+      .chapter { position:absolute; left:44px; top:32px; z-index:40; display:flex; align-items:center; gap:14px; font-size:22px; font-weight:900; }
+      .chapter .num { min-width:54px; padding:8px 12px; border-radius:8px; background:var(--ink); color:var(--lime); box-shadow:5px 6px 0 var(--shadow); text-align:center; }
+      .chapter .name { min-width:150px; padding:7px 12px; border:3px solid var(--ink); border-radius:8px; background:var(--paper2); box-shadow:5px 6px 0 var(--shadow); }
+      .nav { position:absolute; left:44px; right:44px; bottom:28px; height:34px; display:flex; align-items:flex-end; z-index:40; border-bottom:4px solid var(--ink); }
+      .nav span { flex:1; padding:0 12px 9px; font-size:16px; font-weight:850; color:var(--muted); border-bottom:4px solid transparent; white-space:nowrap; }
+      .nav span.active { color:var(--ink); border-color:var(--ink); }
+      #canvas { position:absolute; left:50px; right:50px; top:110px; bottom:220px; overflow:hidden; }
+      .scene { position:absolute; inset:0; opacity:0; visibility:hidden; }
+      .beat { position:absolute; inset:0; opacity:0; visibility:hidden; }
+      .beat > * { position:absolute; }
+      .room-line { position:absolute; left:80px; right:80px; bottom:54px; height:6px; border-radius:6px; background:var(--ink); opacity:.12; }
+      .sun { position:absolute; right:130px; top:48px; width:86px; height:86px; border:6px solid var(--ink); border-radius:50%; background:var(--yellow); opacity:.85; }
+      .plant { position:absolute; right:260px; bottom:58px; width:90px; height:150px; }
+      .plant::before { content:""; position:absolute; left:35px; bottom:0; width:25px; height:100px; border-left:7px solid var(--ink); transform:rotate(7deg); }
+      .plant::after { content:""; position:absolute; left:2px; bottom:0; width:84px; height:42px; border:7px solid var(--ink); border-radius:14px 14px 28px 28px; background:var(--cyan); }
+      .leaf { position:absolute; width:42px; height:24px; border:7px solid var(--ink); border-radius:50% 5% 50% 5%; background:#9bdc9c; }
+      .leaf.a { left:0; top:24px; transform:rotate(-35deg); } .leaf.b { left:42px; top:0; transform:rotate(28deg); } .leaf.c { left:34px; top:53px; transform:rotate(45deg); }
+      .desk { position:absolute; left:250px; right:250px; bottom:58px; height:26px; border:6px solid var(--ink); border-radius:10px; background:var(--yellow); box-shadow:8px 9px 0 var(--shadow); }
+      .desk::before,.desk::after { content:""; position:absolute; top:24px; width:14px; height:120px; border:6px solid var(--ink); border-top:0; background:var(--paper2); }
+      .desk::before { left:38px; } .desk::after { right:38px; }
+      .card { border:5px solid var(--ink); border-radius:18px; background:var(--paper2); box-shadow:10px 12px 0 var(--shadow); }
+      .dark-card { border:5px solid var(--ink); border-radius:18px; background:var(--ink); color:var(--lime); box-shadow:10px 12px 0 var(--shadow); }
+      .tag { padding:10px 18px; border:4px solid var(--ink); border-radius:12px; background:var(--paper2); box-shadow:6px 7px 0 var(--shadow); font-size:26px; font-weight:950; white-space:nowrap; }
+      .tag.lime { background:var(--lime); } .tag.yellow { background:var(--yellow); } .tag.red { background:var(--red); color:var(--paper2); }
+      .speech { position:absolute; min-width:260px; padding:18px 24px; border:5px solid var(--ink); border-radius:22px; background:var(--paper2); box-shadow:8px 9px 0 var(--shadow); font-size:34px; line-height:1.1; font-weight:950; text-align:center; }
+      .speech::after { content:""; position:absolute; left:42px; bottom:-25px; width:30px; height:30px; border-right:5px solid var(--ink); border-bottom:5px solid var(--ink); background:var(--paper2); transform:rotate(45deg); }
+      .speech.red { background:var(--red); color:var(--paper2); } .speech.red::after { background:var(--red); }
+      .note { padding:20px 24px; border:5px solid var(--ink); border-radius:14px; background:var(--yellow); box-shadow:8px 10px 0 var(--shadow); font-size:31px; font-weight:950; }
+      .note.cyan { background:var(--cyan); } .note.lime { background:var(--lime); }
+      .stamp { display:grid; place-items:center; width:150px; height:150px; border:10px solid var(--red); border-radius:50%; color:var(--red); font:950 34px/1 Arial,sans-serif; transform:rotate(-13deg); }
+      .stamp small { display:block; font-size:19px; margin-top:8px; }
+      .resume { width:360px; height:300px; padding:26px; transform:rotate(-4deg); }
+      .resume h3 { margin:0 0 22px; font-size:34px; } .resume .line { height:13px; margin:15px 0; border-radius:7px; background:var(--ink); }
+      .resume .line.short { width:62%; } .resume .clip { position:absolute; right:20px; top:18px; width:36px; height:60px; border:6px solid var(--ink); border-bottom:0; border-radius:16px 16px 0 0; }
+      .magnifier { position:absolute; width:130px; height:130px; border:9px solid var(--red); border-radius:50%; background:#ffffff88; }
+      .magnifier::after { content:""; position:absolute; right:-72px; bottom:-50px; width:86px; height:16px; border-radius:12px; background:var(--red); transform:rotate(45deg); }
+      .question { display:grid; place-items:center; width:120px; height:120px; border:8px solid var(--ink); border-radius:50%; background:var(--lime); font-size:76px; font-weight:950; }
+      .route { width:580px; height:150px; position:relative; }
+      .route::before { content:""; position:absolute; left:36px; right:36px; top:72px; height:8px; background:var(--ink); }
+      .route i { position:absolute; top:42px; width:68px; height:68px; border:6px solid var(--ink); border-radius:50%; background:var(--paper2); font-style:normal; font-size:28px; font-weight:950; display:grid; place-items:center; }
+      .route i:nth-of-type(1) { left:0; background:var(--lime); } .route i:nth-of-type(2) { left:230px; background:var(--yellow); } .route i:nth-of-type(3) { right:0; background:var(--red); color:var(--paper2); }
+      .route b { position:absolute; top:0; font-size:22px; } .route b:nth-of-type(1) { left:0; } .route b:nth-of-type(2) { left:214px; } .route b:nth-of-type(3) { right:0; }
+      .window { width:860px; height:410px; overflow:hidden; border:5px solid var(--ink); border-radius:20px; background:var(--paper2); box-shadow:12px 14px 0 var(--shadow); }
+      .window .bar { height:55px; display:flex; align-items:center; gap:10px; padding:0 18px; border-bottom:4px solid var(--ink); background:#e6e3d8; font-family:monospace; font-weight:900; }
+      .dot { width:16px; height:16px; border:3px solid var(--ink); border-radius:50%; background:var(--red); } .dot:nth-child(2) { background:var(--yellow); } .dot:nth-child(3) { background:var(--lime); }
+      .prompt { margin:30px; padding:23px; min-height:175px; border:4px solid var(--ink); border-radius:14px; font-size:31px; line-height:1.3; font-weight:800; }
+      .send { position:absolute; right:30px; bottom:25px; padding:10px 20px; border:4px solid var(--ink); border-radius:10px; background:var(--lime); font-size:24px; font-weight:950; }
+      .cursor { display:inline-block; width:4px; height:30px; margin-left:5px; vertical-align:-3px; background:var(--red); }
+      .output { width:420px; padding:22px; border:5px solid var(--ink); border-radius:18px; background:var(--cyan); box-shadow:10px 12px 0 var(--shadow); font-size:27px; font-weight:950; }
+      .output span { display:block; margin-top:12px; padding:9px 12px; border:3px solid var(--ink); border-radius:10px; background:var(--paper2); font-size:23px; }
+      .caption { position:absolute; left:270px; right:370px; bottom:86px; height:66px; padding:12px 22px; border:4px solid var(--ink); border-radius:12px; background:rgba(23,23,22,.96); color:var(--paper2); font-size:32px; line-height:1.25; font-weight:900; text-align:center; z-index:60; visibility:hidden; }
+      .caption-line { position:absolute; left:22px; right:22px; top:12px; display:block; opacity:0; visibility:hidden; }
+      .toon { position:absolute; width:260px; height:320px; overflow:visible; } .toon.small { width:220px; height:270px; }
+      #talking-head { position:absolute; left:54px; bottom:104px; width:270px; height:342px; z-index:55; overflow:hidden; border:6px solid var(--paper2); border-radius:22px; background:#111; box-shadow:12px 14px 0 var(--shadow); transform-origin:top left; }
+      #talking-head video { width:100%; height:100%; display:block; object-fit:cover; object-position:50% 0%; }
+      .svg-defs { position:absolute; width:0; height:0; overflow:hidden; }
+    
+.scene { overflow:hidden; }
+.reveal { position:absolute; inset:0; visibility:hidden; opacity:0; }
+.reveal > * { position:absolute; }
+.scene .toon { width:300px; height:370px; }
+.scene .toon.small { width:240px; height:296px; }
+.headline { left:150px; top:28px; max-width:1280px; font-size:54px; font-weight:900; letter-spacing:-1px; }
+.headline .accent { color:#b52c27; }
+.stage-floor { position:absolute; left:150px; right:300px; bottom:54px; height:4px; background:#d8d1c4; }
+.cv { width:420px; height:350px; padding:30px; }
+.cv h3 { margin:0 0 20px; font-size:34px; }
+.cvline { height:14px; margin:22px 0; border-radius:8px; background:#171716; transform-origin:left center; }
+.cvline.short { width:65%; }
+.checkmark { font-size:74px; font-weight:900; color:#37634a; }
+.large-stamp { display:grid; place-items:center; width:225px; height:160px; border:8px solid #b52c27; border-radius:20px; color:#b52c27; font-size:60px; font-weight:900; background:#fffdf7; }
+.meter { width:600px; padding:26px; font-size:38px; font-weight:900; }
+.meter-track { height:32px; border:4px solid var(--ink); border-radius:10px; overflow:hidden; margin-top:20px; }
+.meter-fill { width:100%; height:100%; background:var(--cyan); transform-origin:left center; }
+.arrow { font:900 160px/1 Arial,sans-serif; }
+.search-box { width:560px; padding:28px; font-size:40px; font-weight:900; }
+.search-line { margin-top:20px; padding:20px; border:4px solid var(--ink); border-radius:14px; background:#f4f0e6; }
+.focus-ring { width:330px; height:330px; border:8px dashed #b52c27; border-radius:50%; }
+.jd { width:650px; padding:30px; height:390px; }
+.jd h3 { margin:0 0 24px; font-size:38px; }
+.jdline { height:14px; width:90%; border-radius:9px; background:#d8d1c4; margin:26px 0; }
+.hidden-question { width:400px; padding:24px; font-size:38px; font-weight:900; }
+.tool { width:520px; height:320px; padding:30px; font-size:42px; font-weight:900; }
+.tool-icon { font-size:80px; margin:22px 0; }
+.cross { font-size:86px; font-weight:900; color:#b52c27; }
+.window .prompt { font-size:34px; }
+.window .bar { font-size:22px; }
+.tiny-actor { width:165px!important; height:204px!important; }
+.nav span { color:var(--ink); border-color:#d8d1c4; font-size:20px; text-align:center; }
+.page-progress { position:absolute; left:0; bottom:-4px; width:100%; height:4px; background:var(--ink); transform-origin:left center; }
+.caption { left:400px; right:100px; }
+</style>
+  </head>
+  <body>
+    <svg class="svg-defs" aria-hidden="true"><defs>
+      <symbol id="candidate-think" viewBox="0 0 260 320"><path d="M68 90 Q55 32 130 22 Q206 32 193 90 Q169 59 132 64 Q94 59 68 90Z" fill="#5b4034" stroke="#171716" stroke-width="10" stroke-linejoin="round"/><circle cx="130" cy="108" r="53" fill="#ffd9bd" stroke="#171716" stroke-width="10"/><path d="M108 105h2M151 105h2M116 132q14 10 28 0" fill="none" stroke="#171716" stroke-width="9" stroke-linecap="round"/><path d="M65 174 Q130 143 195 174 L211 280 Q130 313 49 280Z" fill="#92d3d7" stroke="#171716" stroke-width="10"/><path d="M70 194 Q35 211 25 254M190 194 Q226 210 234 238" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/><path d="M234 238 Q218 234 214 248" fill="none" stroke="#171716" stroke-width="10" stroke-linecap="round"/><path d="M91 280 L84 312M169 280 L176 312" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/></symbol>
+      <symbol id="candidate-worried" viewBox="0 0 260 320"><path d="M68 90 Q55 32 130 22 Q206 32 193 90 Q169 59 132 64 Q94 59 68 90Z" fill="#5b4034" stroke="#171716" stroke-width="10" stroke-linejoin="round"/><circle cx="130" cy="108" r="53" fill="#ffd9bd" stroke="#171716" stroke-width="10"/><path d="M103 103l14 6M143 109l14-6M116 137q14-10 28 0" fill="none" stroke="#171716" stroke-width="9" stroke-linecap="round"/><path d="M65 174 Q130 143 195 174 L211 280 Q130 313 49 280Z" fill="#f4d34d" stroke="#171716" stroke-width="10"/><path d="M70 194 Q40 222 28 260M190 194 Q221 218 238 260" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/><path d="M91 280 L84 312M169 280 L176 312" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/></symbol>
+      <symbol id="candidate-point" viewBox="0 0 260 320"><path d="M68 90 Q55 32 130 22 Q206 32 193 90 Q169 59 132 64 Q94 59 68 90Z" fill="#5b4034" stroke="#171716" stroke-width="10" stroke-linejoin="round"/><circle cx="130" cy="108" r="53" fill="#ffd9bd" stroke="#171716" stroke-width="10"/><path d="M108 105h2M151 105h2M116 133q14 11 28 0" fill="none" stroke="#171716" stroke-width="9" stroke-linecap="round"/><path d="M65 174 Q130 143 195 174 L211 280 Q130 313 49 280Z" fill="#d6b6f2" stroke="#171716" stroke-width="10"/><path d="M70 194 Q36 176 19 145M190 194 Q226 177 247 155" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/><path d="M13 143l26 4M241 153l16-14" fill="none" stroke="#171716" stroke-width="10" stroke-linecap="round"/><path d="M91 280 L84 312M169 280 L176 312" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/></symbol>
+      <symbol id="candidate-type" viewBox="0 0 260 320"><path d="M68 90 Q55 32 130 22 Q206 32 193 90 Q169 59 132 64 Q94 59 68 90Z" fill="#5b4034" stroke="#171716" stroke-width="10" stroke-linejoin="round"/><circle cx="130" cy="108" r="53" fill="#ffd9bd" stroke="#171716" stroke-width="10"/><path d="M108 105h2M151 105h2M116 132q14 10 28 0" fill="none" stroke="#171716" stroke-width="9" stroke-linecap="round"/><path d="M65 174 Q130 143 195 174 L211 280 Q130 313 49 280Z" fill="#92d3d7" stroke="#171716" stroke-width="10"/><path d="M70 194 Q39 222 24 252M190 194 Q220 214 233 249" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/><rect x="20" y="242" width="30" height="42" rx="7" fill="#171716"/><path d="M91 280 L84 312M169 280 L176 312" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/></symbol>
+      <symbol id="interviewer" viewBox="0 0 260 320"><path d="M68 88 Q72 24 134 24 Q196 24 193 88 Q168 58 131 62 Q95 57 68 88Z" fill="#242b55" stroke="#171716" stroke-width="10" stroke-linejoin="round"/><circle cx="130" cy="107" r="52" fill="#f0c5a4" stroke="#171716" stroke-width="10"/><path d="M107 105h2M151 105h2M116 133q14-9 28 0" fill="none" stroke="#171716" stroke-width="9" stroke-linecap="round"/><path d="M66 174 Q130 144 194 174 L212 280 Q130 313 48 280Z" fill="#92b7f0" stroke="#171716" stroke-width="10"/><path d="M72 195 Q40 208 25 239M188 195 Q218 207 235 238" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/><path d="M91 280 L84 312M169 280 L176 312" fill="none" stroke="#171716" stroke-width="15" stroke-linecap="round"/><path d="M90 191 L130 214 L170 191" fill="none" stroke="#171716" stroke-width="8"/></symbol>
+    </defs></svg>
+    <div id="root" data-composition-id="reference-prototype" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <div class="grain"></div>
+      <nav class="nav"><span>01</span><span>02</span><span>03</span><span>04</span></nav>
+      <main id="canvas" data-layout-allow-occlusion="true"><section id="page-1" class="scene"><div class="stage-floor"></div><div class="reveal" data-cue="1" data-hide="5.68"><div class="headline">为什么每次面试…</div><svg id="p1-girl" class="toon " style="left:260px;top:285px"><use id="p1-smile" href="#candidate-think"></use><use id="p1-worry" href="#candidate-worried" style="visibility:hidden"></use></svg><svg id="p1-interviewer" class="toon small" style="left:1230px;top:320px"><use href="#interviewer"></use></svg></div><div class="reveal" data-cue="2" data-hide="3.74"><div id="p1-cv" class="card cv" style="left:660px;top:210px"><h3>简历</h3><div class="cvline"></div><div class="cvline"></div><div class="cvline short"></div></div><div  class="tag lime" style="left:680px;top:126px;font-size:34px">准备充分</div><div id="p1-check" class="checkmark" style="left:1130px;top:270px">✓</div></div><div class="reveal" data-cue="3" data-hide="5.68"><div id="p1-fail" class="large-stamp" style="left:755px;top:290px">挂了</div><div  class="tag red" style="left:805px;top:190px;font-size:34px">面试结果</div></div><div class="reveal" data-cue="4" data-hide="5.68"><div  class="tag yellow" style="left:650px;top:610px;font-size:34px">很多人都遇到过</div><svg id="p1-crowd1" class="toon tiny-actor" style="left:540px;top:380px"><use href="#candidate-worried"></use></svg><svg id="p1-crowd2" class="toon tiny-actor" style="left:1000px;top:380px"><use href="#candidate-worried"></use></svg></div><div class="reveal" data-cue="5"><div class="headline">根本不是 <span class="accent">能力不行</span></div><svg id="p1-confident" class="toon " style="left:300px;top:295px"><use href="#candidate-point"></use></svg><div class="card meter" style="left:770px;top:260px">能力并不差<div class="meter-track"><div id="p1-meter" class="meter-fill"></div></div></div></div></section><section id="page-2" class="scene"><div class="stage-floor"></div><div class="reveal" data-cue="6" data-hide="8.98"><div class="headline">准备方向，错了</div><svg id="p2-girl" class="toon " style="left:290px;top:300px"><use href="#candidate-worried"></use></svg><div id="p2-arrow" class="arrow" style="left:760px;top:230px;color:#b52c27">→</div><div class="cross" style="left:1150px;top:265px">×</div></div><div class="reveal" data-cue="7" data-hide="10.27"><div class="headline">普通人找工作</div><svg id="p2-hunt" class="toon " style="left:290px;top:300px"><use href="#candidate-think"></use></svg><div id="p2-search" class="card search-box" style="left:760px;top:240px">找工作<div class="search-line">⌕　寻找机会</div></div></div><div class="reveal" data-cue="8"><svg id="p2-self" class="toon" style="left:300px;top:300px"><use href="#candidate-think"></use></svg></div><div class="reveal" data-cue="8" data-hide="12.72"><div id="p2-focus" class="focus-ring" style="left:280px;top:260px"></div><div  class="tag yellow" style="left:780px;top:170px;font-size:34px">只盯着自己的</div></div><div class="reveal" data-cue="9" data-hide="12.72"><div id="p2-cv" class="card cv" style="left:745px;top:260px"><h3>简历</h3><div class="cvline"></div><div class="cvline"></div><div class="cvline short"></div></div><div  class="tag lime" style="left:1210px;top:355px;font-size:34px">工作经历</div></div><div class="reveal" data-cue="10" data-hide="13.35"><div class="headline">发现没有？</div><div id="p2-question" class="question" style="left:805px;top:250px;width:180px;height:180px;font-size:110px">?</div></div><div class="reveal" data-cue="11"><svg id="p2-interviewer" class="toon " style="left:1120px;top:320px"><use href="#interviewer"></use></svg><div class="speech" style="left:990px;top:160px;width:400px">面试官</div></div></section><section id="page-3" class="scene"><div class="stage-floor"></div><div class="reveal" data-cue="12" data-hide="15.98"><div class="headline">提问，并不照着你的简历</div><div id="p3-cv" class="card cv" style="left:340px;top:220px"><h3>简历</h3><div class="cvline"></div><div class="cvline"></div><div class="cvline short"></div></div><svg id="p3-interviewer" class="toon " style="left:1190px;top:320px"><use href="#interviewer"></use></svg><div id="p3-strike" style="left:325px;top:378px;width:460px;height:10px;background:#b52c27;transform-origin:left center"></div><div  class="tag yellow" style="left:755px;top:305px;font-size:34px">不是按简历问</div></div><div class="reveal" data-cue="13" data-hide="17.15"><div class="headline">真正让你被淘汰的…</div><svg id="p3-worried" class="toon " style="left:330px;top:300px"><use href="#candidate-worried"></use></svg><div id="p3-eliminate" class="large-stamp" style="left:835px;top:260px">淘汰</div></div><div class="reveal" data-cue="14" data-hide="20.62"><div id="p3-jd" class="card jd" style="left:330px;top:170px"><h3>招聘文案</h3><div class="jdline"></div><div class="jdline"></div><div class="jdline" style="width:68%"></div></div><svg id="p3-read" class="toon " style="left:1130px;top:330px"><use href="#candidate-think"></use></svg></div><div class="reveal" data-cue="15" data-hide="20.62"><div id="p3-highlight" style="left:360px;top:278px;width:500px;height:30px;background:#f4d34d88;transform-origin:left center"></div><div id="p3-lens" class="magnifier" style="left:815px;top:300px"></div><div id="p3-hidden" class="card hidden-question" style="left:1050px;top:155px;background:var(--yellow)">隐藏难题<div style="font-size:70px;margin-top:12px">?</div></div></div><div class="reveal" data-cue="16"><div class="headline">今天，给大家准备了…</div><svg id="p3-offer" class="toon " style="left:360px;top:300px"><use href="#candidate-point"></use></svg><div id="p3-gift" class="card" style="left:800px;top:245px;width:330px;height:265px;background:var(--yellow)"><div style="position:absolute;left:134px;top:0;width:50px;height:100%;background:var(--red)"></div><div style="position:absolute;left:0;top:70px;width:100%;height:45px;background:var(--red)"></div></div></div></section><section id="page-4" class="scene"><div class="stage-floor"></div><div class="reveal" data-cue="17" data-hide="26.14"><svg id="p4-girl" class="toon " style="left:300px;top:315px"><use href="#candidate-point"></use></svg><div id="p4-tool" class="card tool" style="left:780px;top:195px;background:var(--cyan)">面试 Skill<div class="tool-icon">✦</div><div style="font-size:26px">面试准备工具</div></div></div><div class="reveal" data-cue="18" data-hide="26.14"><div id="p4-unprepared" class="tag yellow" style="left:735px;top:565px;font-size:34px">不会准备</div><div id="p4-tick1" style="left:1050px;top:551px;font-size:65px;color:#37634a">✓</div></div><div class="reveal" data-cue="19" data-hide="26.14"><div id="p4-chaos" class="tag yellow" style="left:1380px;top:250px;font-size:34px">瞎准备</div><div id="p4-cross" class="cross" style="left:1420px;top:365px">×</div></div><div class="reveal" data-cue="20"><div id="p4-window" class="window" style="left:330px;top:150px;width:970px;height:440px"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>智能体</span></div><div class="prompt" style="border:0;background:#f4f0e6"></div></div><svg id="p4-typing" class="toon small" style="left:1280px;top:350px"><use href="#candidate-type"></use></svg></div><div class="reveal" data-cue="21"><div id="p4-skill-input" class="note lime" style="left:395px;top:280px;width:775px;font-size:38px">面试 Skill<span class="cursor"></span></div></div><div class="reveal" data-cue="22"><div id="p4-job" class="card" style="left:410px;top:445px;width:730px;padding:24px;font-size:34px">应聘岗位</div></div></section></main>
+      <div id="talking-head" data-layout-allow-occlusion="true"><video id="talking-head-video" src="面试口播.mp4" playsinline data-start="0" data-duration="30" data-has-audio="true"></video></div>
+      <div class="caption" id="caption" data-layout-allow-occlusion="true"></div>
+    </div>
+    <script id="sentence-plan" type="application/json">{"pages": [{"id": 1, "start": 0, "end": 6.88}, {"id": 2, "start": 6.88, "end": 14.45}, {"id": 3, "start": 14.45, "end": 22.3}, {"id": 4, "start": 22.3, "end": 30}], "cues": [{"id": 1, "start": 0.0, "end": 1.2, "text": "为什么你每次面试", "page": 1, "action": "候选人与面试官入场，候选人朝面试官移动"}, {"id": 2, "start": 1.2, "end": 2.55, "text": "简历准备得很充分", "page": 1, "action": "简历展开，内容展开，完成勾出现"}, {"id": 3, "start": 2.55, "end": 3.74, "text": "最后却还是挂了？", "page": 1, "action": "失败标记落下，人物下沉"}, {"id": 4, "start": 3.74, "end": 5.68, "text": "其实大部分人面试失败", "page": 1, "action": "更多失败的候选人进入场景"}, {"id": 5, "start": 5.68, "end": 6.88, "text": "根本不是能力不行", "page": 1, "action": "能力条填满，人物抬手自信"}, {"id": 6, "start": 6.88, "end": 8.98, "text": "而是准备的方向完全错了", "page": 2, "action": "错误方向箭头移动并撞向叉号"}, {"id": 7, "start": 8.98, "end": 10.27, "text": "我们普通人找工作", "page": 2, "action": "求职搜索框展开，候选人寻找机会"}, {"id": 8, "start": 10.27, "end": 11.55, "text": "只会死磕自己的", "page": 2, "action": "注意力圈收拢到自己"}, {"id": 9, "start": 11.55, "end": 12.72, "text": "简历和工作经历", "page": 2, "action": "简历和工作经历展开并得到聚焦"}, {"id": 10, "start": 12.72, "end": 13.35, "text": "发现没有？", "page": 2, "action": "问号转动，注意力转向面试官"}, {"id": 11, "start": 13.35, "end": 14.45, "text": "面试官从来不会", "page": 2, "action": "面试官入场并前倾"}, {"id": 12, "start": 14.45, "end": 15.98, "text": "按照你的简历进行提问", "page": 3, "action": "简历上的提问路径被划掉"}, {"id": 13, "start": 15.98, "end": 17.15, "text": "真正把你淘汰的", "page": 3, "action": "淘汰标记落下，候选人后退"}, {"id": 14, "start": 17.15, "end": 18.65, "text": "全是招聘文案里那些", "page": 3, "action": "招聘文案展开"}, {"id": 15, "start": 18.65, "end": 20.62, "text": "看似平平无奇的隐藏难题", "page": 3, "action": "原文高亮、放大镜移动、隐藏难题弹出"}, {"id": 16, "start": 20.62, "end": 22.3, "text": "所以今天我给大家准备了", "page": 3, "action": "候选人把准备的工具礼盒推入画面"}, {"id": 17, "start": 22.3, "end": 23.76, "text": "一个超强的面试 Skill", "page": 4, "action": "礼盒换成面试Skill工具"}, {"id": 18, "start": 23.76, "end": 25.03, "text": "彻底解决不会准备", "page": 4, "action": "不会准备的问题被完成勾解决"}, {"id": 19, "start": 25.03, "end": 26.14, "text": "瞎准备的问题", "page": 4, "action": "瞎准备的问题被划掉"}, {"id": 20, "start": 26.14, "end": 27.68, "text": "我们直接打开智能体", "page": 4, "action": "智能体窗口打开，人物切成输入姿势"}, {"id": 21, "start": 27.68, "end": 29.32, "text": "输入我们专属的 Skill", "page": 4, "action": "专属Skill输入窗口"}, {"id": 22, "start": 29.32, "end": 30, "text": "你只需要把应聘岗位的", "page": 4, "action": "应聘岗位输入行展开；后续招聘文案不提前展示"}]}</script>
+    <script>
+const plan = JSON.parse(document.getElementById('sentence-plan').textContent);
+const tl = gsap.timeline({paused:true});
+const nav = [...document.querySelectorAll('.nav span')];
+plan.pages.forEach((page,i)=>{
+ const scene=document.getElementById(`page-${page.id}`);
+ tl.set(scene,{autoAlpha:1},page.start); tl.set(scene,{autoAlpha:0},page.end);
+ const progress=document.createElement('i');progress.className='page-progress';nav[i].style.position='relative';nav[i].appendChild(progress);
+ tl.fromTo(progress,{scaleX:0},{scaleX:1,duration:page.end-page.start,ease:'none'},page.start);
+});
+document.querySelectorAll('.reveal').forEach(node=>{
+ const cue=plan.cues.find(c=>c.id===Number(node.dataset.cue));tl.set(node,{autoAlpha:1},cue.start);
+ [...node.children].forEach((child,i)=>tl.fromTo(child,{opacity:0,y:16},{opacity:1,y:0,duration:.24,ease:'power2.out'},cue.start+Math.min(i*.035,.1)));
+ if(node.dataset.hide)tl.set(node,{autoAlpha:0},Number(node.dataset.hide));
+});
+const move=(target,start,from,to,duration=.42)=>tl.fromTo(target,from,{...to,duration,ease:'power2.out'},start);
+move('#p1-girl',0,{x:-90},{x:0});
+move('#p1-cv .cvline',1.2,{scaleX:0},{scaleX:1},.45);
+move('#p1-check',1.35,{scale:.2},{scale:1},.35);
+move('#p1-fail',2.55,{y:-100,scale:1.4,rotation:-12},{y:0,scale:1,rotation:-6});
+move('#p1-girl',2.55,{y:0},{y:22});
+tl.set('#p1-smile',{visibility:'hidden'},2.55);tl.set('#p1-worry',{visibility:'visible'},2.55);
+move('#p1-crowd1',3.74,{x:-70},{x:0});move('#p1-crowd2',3.74,{x:70},{x:0});
+move('#p1-meter',5.68,{scaleX:0},{scaleX:1},.55);
+move('#p2-arrow',6.88,{x:-130},{x:60},.6);
+move('#p2-search',8.98,{scale:.8},{scale:1});
+move('#p2-focus',10.27,{scale:1.5,rotation:25},{scale:1,rotation:0},.6);
+move('#p2-cv',11.55,{x:120},{x:0});
+move('#p2-question',12.72,{rotation:-30,scale:.5},{rotation:0,scale:1},.35);
+move('#p2-interviewer',13.35,{x:60,rotation:5},{x:0,rotation:0});
+move('#p3-strike',14.45,{scaleX:0},{scaleX:1},.6);
+move('#p3-eliminate',15.98,{scale:1.5,rotation:-15},{scale:1,rotation:-7});
+move('#p3-worried',15.98,{x:0},{x:-30});
+move('#p3-jd',17.15,{x:100},{x:0});
+move('#p3-highlight',18.65,{scaleX:0},{scaleX:1},.45);
+move('#p3-lens',18.65,{x:-180,y:20},{x:0,y:0},.7);
+move('#p3-hidden',18.85,{scale:.85},{scale:1},.4);
+move('#p3-gift',20.62,{x:-140},{x:0},.6);
+move('#p4-tool',22.3,{scale:.8},{scale:1},.5);
+move('#p4-tick1',23.76,{scale:0},{scale:1},.4);
+move('#p4-cross',25.03,{rotation:-25,scale:.5},{rotation:0,scale:1},.4);
+move('#p4-window',26.14,{scale:.85,y:80},{scale:1,y:0},.5);
+move('#p4-skill-input',27.68,{x:-60},{x:0},.4);
+move('#p4-job',29.32,{y:30},{y:0},.4);
+plan.cues.forEach(cue=>{
+ const node=document.createElement('span');node.className='caption-line';node.dataset.cue=cue.id;node.textContent=cue.text;
+ document.getElementById('caption').appendChild(node);
+ tl.set(node,{autoAlpha:1},cue.start);tl.set(node,{autoAlpha:0},cue.end);
+});
+tl.set('#caption',{autoAlpha:1},0);
+window.__timelines=window.__timelines||{};window.__timelines['reference-prototype']=tl;
+</script>
+  </body>
+</html>
