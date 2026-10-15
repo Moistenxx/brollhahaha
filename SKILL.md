@@ -1,5 +1,5 @@
 ---
-name: b-roll
+name: brollhahaha
 description: 根据原始口播视频和 SRT，用 HyperFrames 制作每页 5–8 秒、逐句触发动作的教学 B-roll；用于保留真人左下角的代码动画讲解。
 ---
 
